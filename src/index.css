@@ -1,0 +1,146 @@
+/* Default (for larger screens) */
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* General Styles */
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  /* Fix for mobile layout */
+  align-items: center;
+  justify-content: center;
+  min-width: 320px;
+  min-height: 100vh;
+  /* Ensure full height */
+  overflow-x: hidden;
+  /* Prevent horizontal scroll */
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+button:hover {
+  border-color: #646cff;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Light Mode */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+
+  a:hover {
+    color: #747bff;
+  }
+
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+/* Responsive Media Queries */
+
+/* 📱 Small Phones (320px - 480px) */
+@media screen and (max-width: 480px) {
+  body {
+    text-align: center;
+    padding: 1rem;
+    /* Add padding to prevent edge touching */
+  }
+
+  h1 {
+    font-size: 2em;
+  }
+
+  button {
+    padding: 0.5em 1em;
+    font-size: 0.9em;
+  }
+}
+
+/* 📱📏 Medium Devices (481px - 768px) */
+@media screen and (max-width: 768px) {
+  h1 {
+    font-size: 2.5em;
+  }
+
+  button {
+    font-size: 1em;
+    padding: 0.6em 1.2em;
+  }
+}
+
+/* 💻 Large Devices (769px - 1024px) */
+@media screen and (max-width: 1024px) {
+  h1 {
+    font-size: 3em;
+  }
+
+  button {
+    font-size: 1.1em;
+    padding: 0.8em 1.5em;
+  }
+}
+
+/* 🖥️ Extra Large Screens (1025px and above) */
+@media screen and (min-width: 1025px) {
+  h1 {
+    font-size: 3.2em;
+  }
+
+  button {
+    font-size: 1.2em;
+    padding: 1em 2em;
+  }
+}
