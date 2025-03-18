@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import Header from "./HeaderContent";
 import Home from "./Home";
-import { Routes, Route } from "react-router-dom";
 
 function Content() {
   useEffect(() => {
@@ -46,9 +45,7 @@ function Content() {
     <>
       <Header />
 
-      <Routes>
-        <Route path="/dashboard" element={<Home />} />
-      </Routes>
+      <Home />
     </>
   );
 }
