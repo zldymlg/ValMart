@@ -47,7 +47,7 @@ function Content() {
       <Header />
 
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Home />} />
       </Routes>
     </>
   );
