@@ -91,7 +91,7 @@ body {
     .card {
         overflow-y: auto;
         max-width: 300px;
-        margin-top: 40VH;
+        margin-top: 20VH;
     }
 
     p,

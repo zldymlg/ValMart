@@ -69,3 +69,28 @@
     border-radius: 5px;
     cursor: pointer;
 }
+
+[type="file"] {
+    color: #878787;
+}
+
+[type="file"]::-webkit-file-upload-button {
+    background: #ED1C1B;
+    border: 2px solid #ED1C1B;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    outline: none;
+    padding: 10px 25px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    min-width: 5px;
+    min-height: 10px;
+}
+
+[type="file"]::-webkit-file-upload-button:hover {
+    background: #fff;
+    border: 2px solid #535353;
+    color: #000;
+}

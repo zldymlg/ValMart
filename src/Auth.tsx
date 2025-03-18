@@ -27,10 +27,12 @@ export default function AuthPage() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleAuth = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMessage("");
+    setLoading(true);
 
     try {
       if (isSignUp) {
@@ -59,13 +61,21 @@ export default function AuthPage() {
           createdAt: serverTimestamp(),
         });
 
-        navigate("/dashboard");
+        setTimeout(() => {
+          navigate("/dashboard");
+          window.location.reload();
+        }, 100);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
-        navigate("/dashboard");
+        setTimeout(() => {
+          navigate("/dashboard");
+          window.location.reload();
+        }, 100);
       }
     } catch (error: any) {
       setErrorMessage(error.message || "Error, please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,9 +101,10 @@ export default function AuthPage() {
           transition={{ duration: 0.5 }}
         >
           <div
-            className="card p-4 shadow-lg"
+            className="card p-4 shadow-lg "
             style={{
               width: "24rem",
+
               backgroundColor: "#fffff",
             }}
           >
@@ -246,8 +257,12 @@ export default function AuthPage() {
                     </div>
                   </div>
                 )}
-                <button className="btn btn-danger w-100 mt-2" type="submit">
-                  {isSignUp ? "Sign Up" : "Log In"}
+                <button
+                  className="btn btn-danger w-100 mt-2"
+                  type="submit"
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : isSignUp ? "Sign Up" : "Log In"}
                 </button>
               </form>
 

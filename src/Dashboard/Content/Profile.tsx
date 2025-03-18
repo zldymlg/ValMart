@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { auth, db } from "../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
+import BackgroundImage from "/src/assets/Background.png";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import {
@@ -10,8 +18,8 @@ import {
   FaHashtag,
   FaCircleUser,
   FaSchool,
-} from "react-icons/fa6"; // Placeholder imports for icons
-
+  FaPen,
+} from "react-icons/fa6";
 interface User {
   fullName?: string;
   contact?: string;
@@ -20,7 +28,7 @@ interface User {
 }
 
 export default function Profile() {
-  const [userData, setUserData] = useState<User>({});
+  const [_userData, setUserData] = useState<User>({});
   const [imageUrl, setImageUrl] = useState(
     "https://bxemmrkbsnygfipesymp.supabase.co/storage/v1/object/public/Valmart/profiles/DefaultPhoto.jpg"
   );
@@ -30,6 +38,21 @@ export default function Profile() {
   const [social, setSocial] = useState("");
   const [username, setUsername] = useState("");
   const [section, setSection] = useState("");
+  const [itemsSoldCount, setItemsSoldCount] = useState(0);
+  const [purchasesCount, setPurchasesCount] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUserId(user.uid);
+      } else {
+        setCurrentUserId(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -42,11 +65,10 @@ export default function Profile() {
 
         if (userDocSnapshot.exists()) {
           setUserData(userDocSnapshot.data() as User);
-          // Set state variables with data from the document
           setFullName(userDocSnapshot.data().fullName || "");
           setContact(userDocSnapshot.data().contact || "");
           setSocial(userDocSnapshot.data().social || "");
-          setUsername(userDocSnapshot.data().username || ""); // Assuming you have a 'username' field
+          setUsername(userDocSnapshot.data().username || "");
           setSection(userDocSnapshot.data().section || "");
         }
       } catch (error) {
@@ -61,6 +83,34 @@ export default function Profile() {
     };
 
     fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "orders"));
+        const fetchedOrders = querySnapshot.docs.map((doc) => doc.data());
+
+        // Filter for items sold (Completed status)
+        const soldItems = fetchedOrders.filter(
+          (order) =>
+            order.sellerId === currentUserId && order.status === "Completed"
+        );
+
+        // Filter for purchases
+        const purchases = fetchedOrders.filter(
+          (order) =>
+            order.buyerId === currentUserId && order.status === "Completed"
+        );
+
+        setItemsSoldCount(soldItems.length);
+        setPurchasesCount(purchases.length);
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+      }
+    };
+
+    fetchStats();
   }, []);
 
   const handleImageUpload = async (
@@ -109,7 +159,6 @@ export default function Profile() {
     try {
       const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, {
-        fullName,
         contact,
         social,
         username,
@@ -124,17 +173,22 @@ export default function Profile() {
   };
 
   return (
-    <div className="container-fluid mt-4 pt-3 text-center">
-      <div className="d-flex flex-row mt-5">
+    <div className="container-fluid mt-4 pt-3 text-center text-md-end">
+      <div
+        className="d-flex flex-column flex-md-row mt-0 mt-md-5 pb-sm-2"
+        style={{
+          backgroundImage: `url(${BackgroundImage})`,
+        }}
+      >
         <label htmlFor="profilePic" className="d-block">
           <img
             src={imageUrl || "placeholder.jpg"}
             alt="Profile"
-            className="rounded-circle"
+            className="rounded-circle p-3"
             style={{
               cursor: "pointer",
-              width: "clamp(100px, 20vw, 200px)",
-              height: "clamp(100px, 20vw, 200px)",
+              width: "clamp(120px, 18vw, 180px)",
+              height: "clamp(120px, 18vw, 180px)",
             }}
           />
         </label>
@@ -142,31 +196,40 @@ export default function Profile() {
           type="file"
           id="profilePic"
           accept="image/*"
-          onChange={handleImageUpload} // Use handleImageUpload here
+          onChange={handleImageUpload}
           className="d-none"
         />
-        <div className="d-flex flex-column text-start ms-5 mt-5 pt-3 justify-content-center">
-          <h3 className="fs-3 fs-sm-5">
-            @{fullName ? fullName.replace(/\s+/g, "_") : "Placeholder"}
-          </h3>
-          <p className="ms-2">
-            Section: {section || "Placeholder for Section"}
-          </p>
-        </div>
-        <div className=" ms-5 mt-5 justify-content-center align-items-center">
-          <button
-            className="btn btn-primary"
-            onClick={() => setIsEditing(true)}
-          >
-            Edit Profile
-          </button>
+        <div className="d-flex flex-row justify-content-center justify-content-md-center m-0 p-0">
+          <div className="d-flex flex-column text-start ps-lg-0 ms-lg-0 ms-1 text-white mt-md-5 ps-sm-4 pt-md-3 justify-content-start align-items-center">
+            <h3 className="fs-1 fw-bold fs-sm-6 text-sm-center">
+              @{username ? username.replace(/\s+/g, "_") : "Placeholder"}
+            </h3>
+            <h6 className="ms-2 text-sm-center">Section: {section}</h6>
+          </div>
+          <div className="pt-md-5 mt-md-4 mt-2  justify-content-center align-items-center">
+            <button
+              className="btn ms-2 md-sm-2 p-0"
+              onClick={() => setIsEditing(true)}
+              style={{
+                backgroundColor: "transparent",
+                height: "clamp(20px, 36px, 50px)",
+              }}
+            >
+              <FaPen
+                style={{
+                  color: "white",
+                  fontSize: "clamp (18px, 25px, 27px)",
+                }}
+              />
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="d-flex flex-md-row flex-column mt-2">
         <div className="d-flex flex-md-row flex-column ">
           <div className="d-flex flex-column text-lg-start text-center me-lg-5">
-            <p className="mt-5 mb-3">
+            <p className="mt-3 mt-md-5 mb-3">
               {" "}
               <FaIdBadge
                 className="me-2 fs-1 fs-md-3"
@@ -174,9 +237,12 @@ export default function Profile() {
                   color: "#C11818",
                 }}
               />
-              Full Name: {fullName || "Placeholder for Full Name"}
+              Full Name:{" "}
+              <span style={{ color: "gray" }}>
+                {fullName || "Please input your Full name"}
+              </span>
             </p>
-            <p className="mt-5 mb-3">
+            <p className="mt-3 mt-md-5 mb-3">
               {""}
               <FaPhone
                 className="me-2 fs-1 fs-md-3"
@@ -185,9 +251,11 @@ export default function Profile() {
                 }}
               />
               Contact:{""}
-              {contact || "Placeholder for Contact"}
+              <span style={{ color: "gray" }}>
+                {contact || "Placeholder for Contact"}
+              </span>
             </p>
-            <p className="mt-5 mb-3">
+            <p className="mt-3 mt-md-5 mb-3">
               {""}
               <FaHashtag
                 className="me-2 fs-1 fs-md-3"
@@ -195,12 +263,14 @@ export default function Profile() {
                   color: "#C11818",
                 }}
               />
-              Social Link: {""}
-              {social || "Placeholder for Social Link"}
+              Social Link:{" "}
+              <span style={{ color: "gray" }}>
+                {social || "Placeholder for Social Link"}
+              </span>
             </p>
           </div>
           <div className="d-flex flex-column text-lg-start text-center">
-            <p className="mt-5 mb-3">
+            <p className="mt-3 mt-md-5 mb-3">
               {""}
               <FaCircleUser
                 className="me-2 fs-1 fs-md-3"
@@ -208,9 +278,11 @@ export default function Profile() {
                   color: "#C11818",
                 }}
               />
-              Username:{""} {username || "Placeholder for Username"}
+              <span style={{ color: "gray" }}>
+                Username:{""} {username || "Placeholder for Username"}
+              </span>
             </p>
-            <p className="mt-5 mb-3">
+            <p className="mt-3 mt-md-5 mb-3">
               {""}
               <FaSchool
                 className="me-2 fs-1 fs-md-3"
@@ -226,12 +298,12 @@ export default function Profile() {
         <div className="d-flex gap-3 ms-lg-5 p-1 ps-lg-5 align-items-center justify-content-center">
           <div className="bg-danger text-white px-4 py-2 h-25 rounded d-flex align-items-center">
             {/* <span className=""> */}
-            <span className="fs-4 fw-bold">16</span>
+            <span className="fs-4 fw-bold">{itemsSoldCount}</span>
             <span className="ms-2">items sold</span>
             <span className="ms-2">🌟</span>
           </div>
           <div className="bg-danger text-white px-4 py-2 h-25 rounded d-flex align-items-center">
-            <span className="fs-4 fw-bold">27</span>
+            <span className="fs-4 fw-bold">{purchasesCount}</span>
             <span className="ms-2">Purchases</span>
             <span className="ms-2">🌟</span>
           </div>

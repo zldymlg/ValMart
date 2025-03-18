@@ -1,5 +1,9 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import Header from "./HeaderContent";
+import Home from "./Content/Home";
+import Dashboard from "./AppContent";
+
+import { Routes, Route } from "react-router-dom";
 
 function Content() {
   useEffect(() => {
@@ -41,9 +45,14 @@ function Content() {
   }, []);
 
   return (
-    <React.Fragment>
+    <>
       <Header />
-    </React.Fragment>
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </>
   );
 }
 
