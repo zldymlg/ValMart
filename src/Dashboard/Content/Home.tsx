@@ -531,10 +531,10 @@ function Content() {
 }        
 
       `}</style>
-      <div className="align-items-center justify-content-center swiper-parent py-4 h-50 ">
+      <div className="align-items-center  swiper-parent py-5 h-sm-50 h-md-50 ">
         <AnimatePresence mode="wait">
           <div
-            className="align-items-center justify-content-center swiper-parent px-4 h-50"
+            className="align-items-center  swiper-parent px-4  h-md-50 h-lg-75"
             style={{
               minHeight: "20vh",
               minWidth: "20vw",
@@ -546,10 +546,13 @@ function Content() {
               loop={true}
               className="w-100"
             >
-              <SwiperSlide>
+              <SwiperSlide
+                className="justify-content-center align-items-center mt-4"
+                style={{}}
+              >
                 <motion.img
                   src={Imageswiper1}
-                  className="w-100"
+                  className="w-100 "
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
@@ -559,7 +562,7 @@ function Content() {
               <SwiperSlide>
                 <motion.img
                   src={Imageswiper}
-                  className="w-100"
+                  className="w-100 "
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
@@ -580,13 +583,13 @@ function Content() {
           </div>
         </AnimatePresence>
         <div className="d-none d-lg-flex flex-column align-items-center container-announcement p-3">
-          <div className="containerA top d-flex align-items-center justify-content-center pt-3 pb-2 px-5 mb-2">
+          <div className="containerA top d-flex align-items-center  pt-3 pb-2 px-5 mb-2">
             <p className="fs-5 mb-2 text-start">
               Sell your <br /> products here!
             </p>
             <FaStore className="icon-announce text-white ms-3" />
           </div>
-          <div className="containerA bottom d-flex align-items-center justify-content-center pt-3 pb-2 px-5">
+          <div className="containerA bottom d-flex align-items-center  pt-3 pb-2 px-5">
             <FaStore className="icon-announce text-white me-3" />
             <p className="fs-5 mb-2 text-start">
               Sell your <br /> products here!
@@ -629,7 +632,7 @@ function Content() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
 
-        <div className="d-flex flex-wrap align-content-start justify-content-center mt-4">
+        <div className="d-flex flex-wrap align-content-start  mt-4">
           {filteredProducts.length > 0 ? (
             filteredProducts.map((product) => (
               <div
@@ -818,10 +821,7 @@ function Content() {
                     </button>
                   </div>
                 </div>
-                <Modal
-                  show={show}
-                  className="custom-modal d-flex justify-content-center"
-                >
+                <Modal show={show} className="custom-modal d-flex ">
                   <Modal.Header className="modal-header">
                     <h2 className="modal-title">🛒 Place Your Order</h2>
                   </Modal.Header>

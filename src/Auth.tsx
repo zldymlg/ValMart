@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { motion } from "framer-motion";
@@ -12,22 +12,22 @@ import {
 import "./Auth.css";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import NavHeader from "./Component/Header";
-import BackgroundImage from "./assets/Background.png";
+import BackgroundImage from "/src/assets/Background.png";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [section, setSection] = useState("");
-  const [gradeLevel, setGradeLevel] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
+  const [section, setSection] = useState<string>("");
+  const [gradeLevel, setGradeLevel] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleAuth = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,15 +55,22 @@ export default function AuthPage() {
         await setDoc(doc(db, "users", user.uid), {
           username,
           email,
+          password,
           section,
           gradeLevel,
           createdAt: serverTimestamp(),
         });
 
-        navigate("/dashboard");
+        setTimeout(() => {
+          navigate("/dashboard");
+          window.location.reload();
+        }, 100);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
-        navigate("/dashboard");
+        setTimeout(() => {
+          navigate("/dashboard");
+          window.location.reload();
+        }, 100);
       }
     } catch (error: any) {
       setErrorMessage(error.message || "Error, please try again.");
@@ -72,8 +79,16 @@ export default function AuthPage() {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   return (
-    <>
+    <React.Fragment>
       <NavHeader />
       <div
         className="d-flex justify-content-center align-items-center vh-100"
@@ -86,13 +101,20 @@ export default function AuthPage() {
           transition={{ duration: 0.5 }}
         >
           <div
-            className="card p-4 shadow-lg"
-            style={{ width: "24rem", backgroundColor: "#fff" }}
+            className="card p-4 shadow-lg "
+            style={{
+              width: "24rem",
+
+              backgroundColor: "#fffff",
+            }}
           >
             <div className="card-body text-center">
               <h2
                 className="mb-5"
-                style={{ fontWeight: "bold", color: "#36454F" }}
+                style={{
+                  fontWeight: "bold",
+                  color: "#36454F",
+                }}
               >
                 {isSignUp ? "Sign Up" : "Log In"}
               </h2>
@@ -104,74 +126,135 @@ export default function AuthPage() {
               <form className="d-flex flex-column gap-2" onSubmit={handleAuth}>
                 {isSignUp && (
                   <>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                    />
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Section"
-                      value={section}
-                      onChange={(e) => setSection(e.target.value)}
-                      required
-                    />
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Grade Level"
-                      value={gradeLevel}
-                      onChange={(e) => setGradeLevel(e.target.value)}
-                      required
-                    />
+                    <div className="text-start mb-3">
+                      <label htmlFor="username" style={{ fontWeight: "500" }}>
+                        Username
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                        style={{ backgroundColor: "rgba(54, 69, 79, 0.1)" }}
+                      />
+                    </div>
+                    <div className="text-start mb-3">
+                      <label htmlFor="section" style={{ fontWeight: "500" }}>
+                        Section
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="section"
+                        value={section}
+                        onChange={(e) => setSection(e.target.value)}
+                        required
+                        style={{ backgroundColor: "rgba(54, 69, 79, 0.1)" }}
+                      />
+                    </div>
+                    <div className="text-start mb-3">
+                      <label htmlFor="gradeLevel" style={{ fontWeight: "500" }}>
+                        Grade Level
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="gradeLevel"
+                        value={gradeLevel}
+                        onChange={(e) => setGradeLevel(e.target.value)}
+                        required
+                        style={{ backgroundColor: "rgba(54, 69, 79, 0.1)" }}
+                      />
+                    </div>
                   </>
                 )}
-                <input
-                  type="email"
-                  className="form-control"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <div className="input-group">
+                <div className="text-start mb-3">
+                  <label htmlFor="email" style={{ fontWeight: "500" }}>
+                    Email
+                  </label>
                   <input
-                    type={showPassword ? "text" : "password"}
+                    type="email"
                     className="form-control"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
+                    style={{ backgroundColor: "rgba(54, 69, 79, 0.1)" }}
                   />
-                  <span
-                    className="input-group-text"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <FaEye /> : <FaEyeSlash />}
-                  </span>
                 </div>
-                {isSignUp && (
-                  <div className="input-group">
+                <div className="text-start mb-3">
+                  <label htmlFor="password" style={{ fontWeight: "500" }}>
+                    Password
+                  </label>
+                  <div
+                    style={{
+                      position: "relative",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
                     <input
-                      type={showConfirmPassword ? "text" : "password"}
+                      type={showPassword ? "text" : "password"}
                       className="form-control"
-                      placeholder="Confirm Password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      id="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
+                      style={{
+                        backgroundColor: "rgba(54, 69, 79, 0.1)",
+                        flexGrow: 1,
+                      }}
                     />
                     <span
-                      className="input-group-text"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
+                      style={{
+                        cursor: "pointer",
+                        marginLeft: "10px",
+                      }}
+                      onClick={togglePasswordVisibility}
                     >
-                      {showConfirmPassword ? <FaEye /> : <FaEyeSlash />}
+                      {showPassword ? <FaEye /> : <FaEyeSlash />}
                     </span>
+                  </div>
+                </div>
+                {isSignUp && (
+                  <div className="text-start mb-3">
+                    <label
+                      htmlFor="confirmPassword"
+                      style={{ fontWeight: "500" }}
+                    >
+                      Confirm Password
+                    </label>
+                    <div
+                      style={{
+                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        className="form-control"
+                        id="confirmPassword"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        style={{
+                          backgroundColor: "rgba(54, 69, 79, 0.1)",
+                          flexGrow: 1,
+                        }}
+                      />
+                      <span
+                        style={{
+                          cursor: "pointer",
+                          marginLeft: "10px",
+                        }}
+                        onClick={toggleConfirmPasswordVisibility}
+                      >
+                        {showConfirmPassword ? <FaEye /> : <FaEyeSlash />}
+                      </span>
+                    </div>
                   </div>
                 )}
                 <button
@@ -197,9 +280,11 @@ export default function AuthPage() {
               </p>
             </div>
           </div>
-          <footer className="text-center mt-3">© 2025 ValMarket</footer>
+          <div className="footer text-center mt-3">
+            <footer>© 2025 ValMarket</footer>
+          </div>
         </motion.div>
       </div>
-    </>
+    </React.Fragment>
   );
 }
