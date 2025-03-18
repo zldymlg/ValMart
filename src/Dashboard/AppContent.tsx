@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import Header from "./HeaderContent";
 import Home from "./Content/Home";
-import Dashboard from "./AppContent";
-
 import { Routes, Route } from "react-router-dom";
 
 function Content() {
@@ -50,7 +48,6 @@ function Content() {
 
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </>
   );
