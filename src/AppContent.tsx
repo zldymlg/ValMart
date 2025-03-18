@@ -44,8 +44,6 @@ function Content() {
   return (
     <>
       <Header />
-
-      <Home />
     </>
   );
 }
