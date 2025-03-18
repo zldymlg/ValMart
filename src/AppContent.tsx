@@ -40,7 +40,7 @@ function Content() {
     };
   }, []);
 
-  return <Header />;
+  <Header />;
 }
 
 export default Content;
