@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import Header from "./HeaderContent";
-import Home from "./Home";
 
 function Content() {
   useEffect(() => {

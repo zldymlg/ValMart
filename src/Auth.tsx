@@ -61,11 +61,11 @@ export default function AuthPage() {
           createdAt: serverTimestamp(),
         });
 
-        navigate("/dashboard1");
+        navigate("/dashboard");
       } else {
         await signInWithEmailAndPassword(auth, email, password);
 
-        navigate("/dashboard1");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       setErrorMessage(error.message || "Error, please try again.");
