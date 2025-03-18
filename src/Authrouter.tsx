@@ -1,13 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AuthPage from "./Auth";
-import Dashboard from "./AppContent";
+import Content from "./AppContent";
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<AuthPage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Content />} />
       </Routes>
     </Router>
   );

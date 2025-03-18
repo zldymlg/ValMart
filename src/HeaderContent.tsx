@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion"; // ✅ Import Framer Motion
 import logo from "../assets/Valma.png";
-import Home from "./Content/Home";
-import Order from "./Content/Order";
-import Profile from "./Content/Profile";
-import Sell from "./Content/Sell";
-import Transaction from "./Content/Transaction";
+import Home from "./Home";
+import Order from "./Order";
+import Profile from "./Profile";
+import Sell from "./Sell";
+import Transaction from "./Transaction";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./HeaderContent.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

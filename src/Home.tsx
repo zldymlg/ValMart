@@ -8,7 +8,7 @@ import { collection, getDocs, doc, getDoc, addDoc } from "firebase/firestore";
 import Imageswiper from "./Asset/Swiper1.png";
 import Imageswiper1 from "./Asset/Swiper2.png";
 import Imageswiper2 from "./Asset/Swiper3.png";
-import { db } from "../firebase";
+import { db } from "./firebase";
 
 import { Modal, Button } from "react-bootstrap";
 

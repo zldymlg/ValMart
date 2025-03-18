@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import Header from "./HeaderContent";
-import Home from "./Content/Home";
+import Home from "./Home";
 import { Routes, Route } from "react-router-dom";
 
 function Content() {

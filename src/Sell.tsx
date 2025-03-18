@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { auth, db } from "../firebase";
+import { auth, db } from "./firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { supabase } from "./supabaseClient";
 import "bootstrap/dist/css/bootstrap.min.css";
