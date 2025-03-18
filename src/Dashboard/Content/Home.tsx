@@ -8,7 +8,7 @@ import { collection, getDocs, doc, getDoc, addDoc } from "firebase/firestore";
 import Imageswiper from "./Asset/Swiper1.png";
 import Imageswiper1 from "./Asset/Swiper2.png";
 import Imageswiper2 from "./Asset/Swiper3.png";
-import { db } from "./firebase";
+import { db } from "../firebase";
 
 import { Modal, Button } from "react-bootstrap";
 
@@ -531,9 +531,16 @@ function Content() {
 }        
 
       `}</style>
-      <div className="align-items-center justify-content-center swiper-parent py-4 w-100 h-50 ">
+      <div className="align-items-center justify-content-center swiper-parent py-4 h-50 ">
         <AnimatePresence mode="wait">
-          <div className="align-items-center justify-content-center swiper-parent px-4 w-100">
+          <div
+            className="align-items-center justify-content-center swiper-parent px-4 h-50"
+            style={{
+              minHeight: "20vh",
+              minWidth: "20vw",
+              maxHeight: "60vh",
+            }}
+          >
             <Swiper
               autoplay={{ delay: 3, disableOnInteraction: false }}
               loop={true}
@@ -542,19 +549,17 @@ function Content() {
               <SwiperSlide>
                 <motion.img
                   src={Imageswiper1}
+                  className="w-100"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 1, ease: "easeInOut" }}
-                  style={{
-                    height: "clamp(415px, 25vh, 600px)",
-                    width: "clamp(100px ,50vw, 200px)",
-                  }}
                 />
               </SwiperSlide>
               <SwiperSlide>
                 <motion.img
                   src={Imageswiper}
+                  className="w-100"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}

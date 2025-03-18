@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { db, auth } from "./firebase"; // Ensure this imports your Firestore instance
+import { db, auth } from "../firebase"; // Ensure this imports your Firestore instance
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./Transaction.css";
 import { collection, getDocs } from "firebase/firestore";

@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { motion } from "framer-motion";
-import { auth, db } from "./firebase";
+import { auth, db } from "./Dashboard/firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -11,7 +11,7 @@ import {
 } from "firebase/auth";
 import "./Auth.css";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import NavHeader from "./Header";
+import NavHeader from "./Component/Header";
 import BackgroundImage from "/src/assets/Background.png";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
@@ -61,11 +61,16 @@ export default function AuthPage() {
           createdAt: serverTimestamp(),
         });
 
-        navigate("/dashboard");
+        setTimeout(() => {
+          navigate("/dashboard");
+          window.location.reload();
+        }, 100);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
-
-        navigate("/dashboard");
+        setTimeout(() => {
+          navigate("/dashboard");
+          window.location.reload();
+        }, 100);
       }
     } catch (error: any) {
       setErrorMessage(error.message || "Error, please try again.");
