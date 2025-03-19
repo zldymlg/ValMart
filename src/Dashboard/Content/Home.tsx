@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
+import "swiper/css";
 import { Swiper, SwiperSlide } from "swiper/react";
-
 import { FaStore, FaBook, FaFlask, FaTools, FaEllipsisH } from "react-icons/fa";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { AnimatePresence, motion } from "framer-motion";
