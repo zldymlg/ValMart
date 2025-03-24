@@ -11,7 +11,9 @@ import {
 } from "firebase/firestore";
 import BackgroundImage from "/src/assets/Background.png";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import * as bootstrap from "bootstrap";
 import {
   FaIdBadge,
   FaPhone,
@@ -41,6 +43,16 @@ export default function Profile() {
   const [itemsSoldCount, setItemsSoldCount] = useState(0);
   const [purchasesCount, setPurchasesCount] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    const tooltipTriggerList = document.querySelectorAll(
+      '[data-bs-toggle="tooltip"]'
+    );
+    tooltipTriggerList.forEach((tooltipTriggerEl) => {
+      new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -185,13 +197,22 @@ export default function Profile() {
             src={imageUrl || "placeholder.jpg"}
             alt="Profile"
             className="rounded-circle p-3"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+            title="Upload Profile"
             style={{
               cursor: "pointer",
               width: "clamp(120px, 18vw, 180px)",
               height: "clamp(120px, 18vw, 180px)",
+              objectFit: "cover",
+              transition: "transform 0.3s ease",
+              transform: hovered ? "scale(1.05)" : "scale(1)",
             }}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
           />
         </label>
+
         <input
           type="file"
           id="profilePic"
@@ -200,7 +221,7 @@ export default function Profile() {
           className="d-none"
         />
         <div className="d-flex flex-row justify-content-center justify-content-md-center m-0 p-0">
-          <div className="d-flex flex-column text-start ps-lg-0 ms-lg-0 ms-1 text-white mt-md-5 ps-sm-4 pt-md-3 justify-content-start align-items-center">
+          <div className="d-flex flex-column text-start ps-lg-0 ms-lg-0 ms-3 text-white mt-md-5 ps-sm-4 pt-md-3 justify-content-start align-items-center">
             <h3 className="fs-1 fw-bold fs-sm-6 text-sm-center">
               @{username ? username.replace(/\s+/g, "_") : "Placeholder"}
             </h3>
@@ -211,14 +232,17 @@ export default function Profile() {
               className="btn ms-2 md-sm-2 p-0"
               onClick={() => setIsEditing(true)}
               style={{
-                backgroundColor: "transparent",
+                borderRadius: "50%",
+                backgroundColor: "white",
                 height: "clamp(20px, 36px, 50px)",
+                width: "clamp(20px, 36px, 50px)",
               }}
             >
               <FaPen
+                className="pb-1"
                 style={{
-                  color: "white",
-                  fontSize: "clamp (18px, 25px, 27px)",
+                  color: "red",
+                  fontSize: "clamp (20px, 27px, 30px)",
                 }}
               />
             </button>
@@ -226,7 +250,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="d-flex flex-md-row flex-column mt-2">
+      <div className="d-flex flex-md-row flex-column gap-5 mt-2 p-2 justify-content-center">
         <div className="d-flex flex-md-row flex-column ">
           <div className="d-flex flex-column text-lg-start text-center me-lg-5">
             <p className="mt-3 mt-md-5 mb-3">
@@ -295,7 +319,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="d-flex gap-3 ms-lg-5 p-1 ps-lg-5 align-items-center justify-content-center">
+        <div className="d-flex gap-3 ms-lg-5 p-1 ps-lg-5 pt-lg-5 align-items-start  justify-content-center">
           <div className="bg-danger text-white px-4 py-2 h-25 rounded d-flex align-items-center">
             {/* <span className=""> */}
             <span className="fs-4 fw-bold">{itemsSoldCount}</span>

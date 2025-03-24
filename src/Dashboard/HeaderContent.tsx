@@ -56,15 +56,29 @@ const HeaderContent: React.FC = () => {
           <motion.button
             className="sidebar-toggle btn btn-link me-3"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.1, color: "white" }}
+            whileTap={{ scale: 0.9, color: "white" }}
           >
             <FaBars size={20} />
           </motion.button>
 
-          {/* LOGO & TITLE */}
-          <div className="d-flex align-items-center">
-            <img src={logo} alt="ValMarket" style={{ height: "40px" }} />
+          <div
+            className="d-flex align-items-center"
+            onClick={() => {
+              setTimeout(() => {
+                navigate("/Dashboard");
+                window.location.reload();
+              }, 100);
+            }}
+            style={{
+              cursor: "pointer",
+            }}
+          >
+            <img
+              src={logo}
+              alt="ValMarket"
+              style={{ height: "40px", cursor: "pointer" }}
+            />
             <h4 className="header-title ms-2 mb-0">ValMarket</h4>
           </div>
         </div>
@@ -122,7 +136,7 @@ const HeaderContent: React.FC = () => {
               className="logout-btn"
               onClick={() =>
                 setTimeout(() => {
-                  navigate("/login");
+                  navigate("");
                   window.location.reload();
                 }, 100)
               }

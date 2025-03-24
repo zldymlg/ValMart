@@ -19,7 +19,7 @@ export default function SellItemForm() {
   const [loading, setLoading] = useState(false);
 
   const preventNegative = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "-" || e.key === "e") {
+    if (e.key === "-") {
       e.preventDefault();
     }
   };
@@ -63,8 +63,11 @@ export default function SellItemForm() {
       const user = auth.currentUser;
       if (!user) throw new Error("User not logged in.");
 
-      if (parseInt(stocks) <= 0) {
+      if (parseFloat(stocks) <= 0) {
         throw new Error("Stocks must be greater than 0.");
+      }
+      if (parseFloat(price) <= 0) {
+        throw new Error("Price must be greater than 0.");
       }
 
       const imageUrl = await handleImageUpload();
@@ -78,7 +81,7 @@ export default function SellItemForm() {
         category,
         gradeSection,
         contact,
-        stocks: parseInt(stocks),
+        stocks: parseFloat(stocks),
         imageUrl,
         createdAt: serverTimestamp(),
       });
@@ -166,6 +169,7 @@ export default function SellItemForm() {
               <label>Price:</label>
               <input
                 type="number"
+                step="0.01"
                 style={{
                   width: "clamp(250px, 30vw, 450px)",
                   height: "auto",
@@ -173,7 +177,7 @@ export default function SellItemForm() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 onKeyDown={(e) => preventNegative(e)}
-                min="1"
+                min="0.01"
                 required
               />
             </div>
@@ -236,8 +240,11 @@ export default function SellItemForm() {
               <label>Number of Stocks:</label>
               <input
                 type="number"
+                step="1"
                 value={stocks}
                 onChange={(e) => setStocks(e.target.value)}
+                onKeyDown={(e) => preventNegative(e)}
+                min="1"
                 required
                 style={{
                   width: "clamp(250px, 30vw, 450px)",

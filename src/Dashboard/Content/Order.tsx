@@ -6,261 +6,224 @@ import {
   getDocs,
   updateDoc,
   doc,
-  query,
-  where,
+  Timestamp,
+  getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./Order.css";
+import moment from "moment";
+import { Modal, Button } from "react-bootstrap";
 
 interface Order {
   id: string;
-  name: string;
-  roomNumber: string;
+  meetingPlace: string;
   time: string;
   quantity: number;
   finalPrice: number;
   buyerId: string;
   sellerId: string;
-  createdAt: any;
+  createdAt: Timestamp;
+  status: string;
+  item: string;
+  buyerName: string;
+  sellerName: string;
+  gradeLevel?: string;
+  section?: string;
 }
 
 export default function OrderManagement() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [orders, setOrders] = useState<any[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [status, setStatus] = useState("");
-  const [grade, setGrade] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
   const [section, setSection] = useState("");
-  const [room, setRoom] = useState("");
+  const [meetingPlace, setMeetingPlace] = useState("");
+  const [time, setTime] = useState("");
+  const [show, setShow] = useState(false);
   const [, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const auth = getAuth();
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
     });
-
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!currentUser) return;
-
-    const fetchOrders = async () => {
-      setLoading(true);
-
-      try {
-        const ordersRef = collection(db, "orders");
-
-        const q = query(
-          ordersRef,
-          where("buyerId", "==", currentUser.uid) // Orders where user is a buyer
-        );
-
-        const q2 = query(
-          ordersRef,
-          where("sellerId", "==", currentUser.uid) // Orders where user is a seller
-        );
-
-        const [buyerOrdersSnapshot, sellerOrdersSnapshot] = await Promise.all([
-          getDocs(q),
-          getDocs(q2),
-        ]);
-
-        const buyerOrders = buyerOrdersSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Order[];
-
-        const sellerOrders = sellerOrdersSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Order[];
-
-        // Combine and sort by createdAt (newest first)
-        const allOrders = [...buyerOrders, ...sellerOrders].sort(
-          (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()
-        );
-
-        setOrders(allOrders);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
+    if (currentUser) {
+      fetchSellerOrders();
+    }
   }, [currentUser]);
 
-  const handleUpdate = async () => {
-    if (!selectedOrder) return;
+  const fetchSellerOrders = async () => {
+    setLoading(true);
+    try {
+      const ordersRef = collection(db, "users", currentUser!.uid, "Seller");
+      const ordersSnapshot = await getDocs(ordersRef);
 
-    await updateDoc(doc(db, "orders", selectedOrder.id), {
-      status,
-      grade,
-      section,
-      room,
-    });
+      const orderList: Order[] = [];
 
-    setOrders(
-      orders.map((order) =>
-        order.id === selectedOrder.id
-          ? { ...order, status, grade, section, room }
-          : order
-      )
-    );
+      for (const docSnap of ordersSnapshot.docs) {
+        const orderData = docSnap.data() as Order;
+        const buyerId = orderData.buyerId;
 
+        let buyerDetails = {
+          buyerName: "Unknown",
+          gradeLevel: "N/A",
+          section: "N/A",
+        };
+
+        if (buyerId) {
+          try {
+            const buyerRef = doc(db, "users", buyerId);
+            const buyerSnap = await getDoc(buyerRef);
+
+            if (buyerSnap.exists()) {
+              const buyerData = buyerSnap.data();
+              buyerDetails = {
+                buyerName: buyerData.username || "Unknown",
+                gradeLevel: buyerData.gradeLevel || "N/A",
+                section: buyerData.section || "N/A",
+              };
+            }
+          } catch (err) {
+            console.error(`Error fetching buyer details for ${buyerId}:`, err);
+          }
+        }
+
+        orderList.push({
+          ...orderData,
+          id: docSnap.id,
+          ...buyerDetails,
+        });
+      }
+
+      setOrders(orderList);
+    } catch (error) {
+      console.error("Error fetching seller orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShow = () => setShow(true);
+  const handleClose = () => {
+    setShow(false);
     setSelectedOrder(null);
-    setStatus("");
-    setGrade("");
-    setSection("");
-    setRoom("");
+  };
+
+  const handleViewDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setStatus(order.status);
+    setGradeLevel(order.gradeLevel || "");
+    setSection(order.section || "");
+    setMeetingPlace(order.meetingPlace || "");
+    setTime(order.time ? moment(order.time).format("YYYY-MM-DDTHH:mm") : "");
+    handleShow();
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedOrder || !currentUser) return;
+
+    try {
+      const orderRef = doc(
+        db,
+        "users",
+        currentUser.uid,
+        "Seller",
+        selectedOrder.id
+      );
+
+      if (status === "Canceled") {
+        await deleteDoc(orderRef);
+        setOrders((prevOrders) =>
+          prevOrders.filter((o) => o.id !== selectedOrder.id)
+        );
+        handleClose();
+        alert("Order canceled successfully."); //User feedback
+      } else {
+        await updateDoc(orderRef, {
+          status,
+          gradeLevel,
+          section,
+          meetingPlace,
+          time,
+        });
+
+        setOrders((prevOrders) =>
+          prevOrders.map((o) =>
+            o.id === selectedOrder.id
+              ? { ...o, status, gradeLevel, section, meetingPlace, time }
+              : o
+          )
+        );
+        handleClose();
+        alert("Order updated successfully."); //User feedback
+      }
+    } catch (error) {
+      console.error("Error updating order:", error);
+      alert("Error updating order. Please try again later."); //User feedback
+    }
   };
 
   return (
     <div className="container mt-4">
       <h2>Order Management</h2>
-
-      {/* Orders Table */}
       <div className="overflow-x-scroll">
         <table className="table">
           <thead>
             <tr>
-              <th
-                style={{
-                  fontSize: "clamp(10px, 2.5vw, 18px)",
-                }}
-              >
-                Item
-              </th>
-              <th
-                style={{
-                  fontSize: "clamp(10px, 2.5vw, 18px)",
-                }}
-              >
-                Price
-              </th>
-              <th
-                style={{
-                  fontSize: "clamp(10px, 2.5vw, 18px)",
-                }}
-              >
-                Quantity
-              </th>
-              <th
-                style={{
-                  fontSize: "clamp(10px, 2.5vw, 18px)",
-                }}
-              >
-                Status
-              </th>
-              <th
-                style={{
-                  fontSize: "clamp(10px, 2.5vw, 18px)",
-                }}
-              >
-                Grade
-              </th>
-              <th
-                style={{
-                  fontSize: "clamp(10px, 2.5vw, 18px)",
-                }}
-              >
-                Section
-              </th>
-              <th
-                style={{
-                  fontSize: "clamp(10px, 2.5vw, 18px)",
-                }}
-              >
-                Room
-              </th>
-              <th
-                style={{
-                  fontSize: "clamp(10px, 2.5vw, 18px)",
-                }}
-              >
-                Action
-              </th>
+              <th>Item</th>
+              <th>Buyer</th>
+              <th>Price</th>
+              <th>Quantity</th>
+              <th>Status</th>
+              <th>Grade</th>
+              <th>Section</th>
+              <th>Meeting Place</th>
+              <th>Time</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {orders.map((order) => (
               <tr key={order.id}>
-                <td
-                  style={{
-                    fontSize: "clamp(10px, 2.5vw, 18px)",
-                  }}
-                >
-                  {order.item}
-                </td>
-                <td
-                  style={{
-                    fontSize: "clamp(10px, 2.5vw, 18px)",
-                  }}
-                >
-                  ₱{order.finalPrice.toFixed(2)}
-                </td>
-                <td
-                  style={{
-                    fontSize: "clamp(10px, 2.5vw, 18px)",
-                  }}
-                >
-                  {order.quantity}
-                </td>
-                <td
-                  style={{
-                    fontSize: "clamp(10px, 2.5vw, 18px)",
-                  }}
-                >
-                  {order.status}
-                </td>
-                <td
-                  style={{
-                    fontSize: "clamp(10px, 2.5vw, 18px)",
-                  }}
-                >
-                  {order.grade || "N/A"}
-                </td>
-                <td
-                  style={{
-                    fontSize: "clamp(10px, 2.5vw, 18px)",
-                  }}
-                >
-                  {order.section || "N/A"}
-                </td>
-                <td
-                  style={{
-                    fontSize: "clamp(10px, 2.5vw, 18px)",
-                  }}
-                >
-                  {order.roomNumber || "N/A"}
+                <td>{order.item}</td>
+                <td>{order.buyerName}</td>
+                <td>₱{order.finalPrice.toFixed(2)}</td>
+                <td>{order.quantity}</td>
+                <td>{order.status}</td>
+                <td>{order.gradeLevel || "N/A"}</td>
+                <td>{order.section || "N/A"}</td>
+                <td>{order.meetingPlace || "N/A"}</td>
+                <td>
+                  {order.time
+                    ? moment(order.time).format("MMMM Do YYYY, hh:mm A")
+                    : "N/A"}
                 </td>
                 <td>
-                  <button
-                    className="btn btn-warning btn-sm"
-                    onClick={() => {
-                      setSelectedOrder(order);
-                      setStatus(order.status);
-                      setGrade(order.grade || "");
-                      setSection(order.section || "");
-                      setRoom(order.room || "");
-                    }}
+                  <Button
+                    variant="warning"
+                    size="sm"
+                    onClick={() => handleViewDetails(order)}
                   >
                     Update
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {/* Update Order Section */}
-      {selectedOrder && (
-        <div className="mt-4">
-          <h3>Update Order</h3>
+
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Update Order</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           <div className="mb-2">
             <label>Status:</label>
             <select
@@ -278,8 +241,8 @@ export default function OrderManagement() {
             <input
               type="text"
               className="form-control"
-              value={grade}
-              onChange={(e) => setGrade(e.target.value)}
+              value={gradeLevel}
+              onChange={(e) => setGradeLevel(e.target.value)}
             />
           </div>
           <div className="mb-2">
@@ -292,19 +255,33 @@ export default function OrderManagement() {
             />
           </div>
           <div className="mb-2">
-            <label>Room:</label>
+            <label>Meeting Place:</label>
             <input
               type="text"
               className="form-control"
-              value={room}
-              onChange={(e) => setRoom(e.target.value)}
+              value={meetingPlace}
+              onChange={(e) => setMeetingPlace(e.target.value)}
             />
           </div>
-          <button className="btn btn-primary" onClick={handleUpdate}>
-            Update Status
-          </button>
-        </div>
-      )}
+          <div className="mb-2">
+            <label>Time:</label>
+            <input
+              type="datetime-local"
+              className="form-control"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleUpdate}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

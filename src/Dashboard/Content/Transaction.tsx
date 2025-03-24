@@ -1,253 +1,287 @@
-import { useState, useEffect } from "react";
-import { db, auth } from "../firebase"; // Ensure this imports your Firestore instance
+import { useEffect, useState } from "react";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { db } from "../firebase";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  Timestamp,
+  getDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./Transaction.css";
-import { collection, getDocs } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import "./Order.css";
+import moment from "moment";
+import { Modal, Button } from "react-bootstrap";
 
-type Transaction = {
+interface Order {
   id: string;
-  buyerId: string;
-  createdAt: string;
-  finalPrice: number;
-  item: string;
-  price: number;
-  quantity: number;
-  roomNumber: string;
-  sellerId: string;
-  status: string;
+  meetingPlace: string;
   time: string;
-};
+  quantity: number;
+  finalPrice: number;
+  buyerId: string;
+  sellerId: string;
+  createdAt: Timestamp;
+  status: string;
+  item: string;
+  buyerName: string;
+  sellerName: string;
+  gradeLevel?: string;
+  section?: string;
+}
 
-type Item = {
-  id: string;
-  category: string;
-  contact: string;
-  createdAt: string;
-  gradeSection: string;
-  imageUrl: string;
-  price: number;
-  productName: string;
-  stocks: number;
-  userId: string;
-};
-
-type User = {
-  id: string;
-  grade: string;
-  section: string;
-  name: string;
-};
-
-type MergedData = Transaction & Partial<Item> & Partial<User>;
-
-export default function Transaction() {
-  const [selectedCategory, setSelectedCategory] = useState("Orders");
-  const [orders, setOrders] = useState<MergedData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+export default function OrderManagement() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [status, setStatus] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [section, setSection] = useState("");
+  const [meetingPlace, setMeetingPlace] = useState("");
+  const [time, setTime] = useState("");
+  const [show, setShow] = useState(false);
+  const [, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setCurrentUserId(user.uid);
-      } else {
-        setCurrentUserId(null);
-      }
+      setCurrentUser(user);
     });
-
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    const fetchOrdersAndItems = async () => {
-      setLoading(true);
+    if (currentUser) {
+      fetchSellerOrders();
+    }
+  }, [currentUser]);
 
-      try {
-        const [ordersSnapshot, itemsSnapshot, usersSnapshot] =
-          await Promise.all([
-            getDocs(collection(db, "orders")),
-            getDocs(collection(db, "items")),
-            getDocs(collection(db, "users")),
-          ]);
+  const fetchSellerOrders = async () => {
+    setLoading(true);
+    try {
+      const ordersRef = collection(db, "users", currentUser!.uid, "Seller");
+      const ordersSnapshot = await getDocs(ordersRef);
 
-        const ordersData = ordersSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Transaction[];
+      const orderList: Order[] = [];
 
-        const itemsData = itemsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Item[];
+      for (const docSnap of ordersSnapshot.docs) {
+        const orderData = docSnap.data() as Order;
+        const buyerId = orderData.buyerId;
 
-        const usersData = usersSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as User[];
+        let buyerDetails = {
+          buyerName: "Unknown",
+          gradeLevel: "N/A",
+          section: "N/A",
+        };
 
-        // Merge data by matching item names
-        const mergedData = ordersData.map((order) => {
-          const matchedItem = itemsData.find(
-            (item) => item.productName === order.item
-          );
-          const matchedUser = usersData.find(
-            (user) => user.id === order.buyerId
-          );
-          return {
-            ...order,
-            ...matchedItem,
-            ...matchedUser,
-          };
+        if (buyerId) {
+          try {
+            const buyerRef = doc(db, "users", buyerId);
+            const buyerSnap = await getDoc(buyerRef);
+
+            if (buyerSnap.exists()) {
+              const buyerData = buyerSnap.data();
+              buyerDetails = {
+                buyerName: buyerData.username || "Unknown",
+                gradeLevel: buyerData.gradeLevel || "N/A",
+                section: buyerData.section || "N/A",
+              };
+            }
+          } catch (err) {
+            console.error(`Error fetching buyer details for ${buyerId}:`, err);
+          }
+        }
+
+        orderList.push({
+          ...orderData,
+          id: docSnap.id,
+          ...buyerDetails,
+        });
+      }
+
+      setOrders(orderList);
+    } catch (error) {
+      console.error("Error fetching seller orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShow = () => setShow(true);
+  const handleClose = () => {
+    setShow(false);
+    setSelectedOrder(null);
+  };
+
+  const handleViewDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setStatus(order.status);
+    setGradeLevel(order.gradeLevel || "");
+    setSection(order.section || "");
+    setMeetingPlace(order.meetingPlace || "");
+    setTime(order.time ? moment(order.time).format("YYYY-MM-DDTHH:mm") : "");
+    handleShow();
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedOrder || !currentUser) return;
+
+    try {
+      const orderRef = doc(
+        db,
+        "users",
+        currentUser.uid,
+        "Seller",
+        selectedOrder.id
+      );
+
+      if (status === "Canceled") {
+        await deleteDoc(orderRef);
+        setOrders((prevOrders) =>
+          prevOrders.filter((o) => o.id !== selectedOrder.id)
+        );
+        handleClose();
+        alert("Order canceled successfully.");
+      } else {
+        await updateDoc(orderRef, {
+          status,
+          gradeLevel,
+          section,
+          meetingPlace,
+          time,
         });
 
-        setOrders(mergedData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
+        setOrders((prevOrders) =>
+          prevOrders.map((o) =>
+            o.id === selectedOrder.id
+              ? { ...o, status, gradeLevel, section, meetingPlace, time }
+              : o
+          )
+        );
+        handleClose();
+        alert("Order updated successfully.");
       }
-    };
-
-    fetchOrdersAndItems();
-  }, []);
-
-  if (loading) {
-    return <div className="text-center mt-5">Loading transactions...</div>;
-  }
-
-  const getTransactions = orders.filter((order) => {
-    if (selectedCategory === "Orders") return true;
-    if (selectedCategory === "Purchases")
-      return order.buyerId === currentUserId && order.status === "Completed";
-    if (selectedCategory === "Items Sold")
-      return order.sellerId === currentUserId && order.status === "Completed";
-    return false;
-  });
+    } catch (error) {
+      console.error("Error updating order:", error);
+      alert("Error updating order. Please try again later.");
+    }
+  };
 
   return (
-    <div className="transaction-container p-0 m-0">
-      {/* Header */}
-      <div className="transaction-header d-flex justify-content-between align-items-center mb-4 px-3">
-        <h3 className="mb-0">Transactions</h3>
-        <select
-          className="transaction-dropdown form-select w-auto"
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-        >
-          <option>Orders</option>
-          <option>Purchases</option>
-          <option>Items Sold</option>
-        </select>
+    <div className="container mt-4">
+      <h2>Order Management</h2>
+      <div className="overflow-x-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Buyer</th>
+              <th>Price</th>
+              <th>Quantity</th>
+              <th>Status</th>
+              <th>Grade</th>
+              <th>Section</th>
+              <th>Meeting Place</th>
+              <th>Time</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((order) => (
+              <tr key={order.id}>
+                <td>{order.item}</td>
+                <td>{order.buyerName}</td>
+                <td>₱{order.finalPrice.toFixed(2)}</td>
+                <td>{order.quantity}</td>
+                <td>{order.status}</td>
+                <td>{order.gradeLevel || "N/A"}</td>
+                <td>{order.section || "N/A"}</td>
+                <td>{order.meetingPlace || "N/A"}</td>
+                <td>
+                  {order.time
+                    ? moment(order.time).format("MMMM Do YYYY, hh:mm A")
+                    : "N/A"}
+                </td>
+                <td>
+                  <Button
+                    variant="warning"
+                    size="sm"
+                    onClick={() => handleViewDetails(order)}
+                  >
+                    Update
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* Transaction List */}
-      <div className="transaction-list container-fluid d-flex flex-column gap-3">
-        {getTransactions.map((item) => (
-          <div
-            key={item.id}
-            className="transaction-card d-flex align-items-center justify-content-between p-3"
-            style={{
-              width: "clamp(300px, 100%, 800px)",
-              margin: "0 auto",
-              backgroundColor: "#fff",
-              borderRadius: "12px",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-              minHeight: "110px",
-              overflowX: "auto",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {/* Image */}
-            <img
-              src={item.imageUrl}
-              alt={item.productName}
-              className="item-image"
-              style={{
-                width: "clamp(20px, 10vw, 150px)",
-                height: "clamp(20px, 10vw, 150px)",
-                objectFit: "cover",
-                borderRadius: "8px",
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Item Details */}
-            <div
-              className="item-details flex-grow-1 ms-3"
-              style={{ minWidth: "50px" }}
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Update Order</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="mb-2">
+            <label>Status:</label>
+            <select
+              className="form-control"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
             >
-              <h5
-                style={{
-                  fontSize: "clamp(0.7rem, 2vw, 1.25rem)",
-                  marginBottom: "0.7rem",
-                }}
-              >
-                {item.productName}
-              </h5>
-              <p
-                className="text-danger"
-                style={{
-                  fontWeight: "bold",
-                  fontSize: "clamp(0.6rem, 1.5vw, 1rem)",
-                }}
-              >
-                Price: ₱{item.price.toFixed(2)}
-              </p>
-            </div>
-
-            {/* Status + Actions */}
-            <div
-              className="transaction-status d-flex flex-column align-items-start"
-              style={{
-                minWidth: "100px",
-                marginLeft: "1rem",
-              }}
-            >
-              <span
-                className="status-badge mb-0 mb-md-2 mt-sm-2"
-                style={{
-                  backgroundColor:
-                    item.status === "Waiting for the item"
-                      ? "#ffc107"
-                      : item.status === "Delivered"
-                      ? "#28a745"
-                      : "#007bff",
-                  color: "#fff",
-                  padding: "0.25rem 0.75rem",
-                  borderRadius: "4px",
-                  fontSize: "clamp(0.4rem, 1.5vw, 1rem)",
-                }}
-              >
-                {item.status}
-              </span>
-
-              {selectedCategory === "Orders" && (
-                <button
-                  className="cancel-btn btn btn-danger btn-sm mb-2"
-                  onClick={() => alert("Cancel action")}
-                  style={{
-                    fontSize: "clamp(0.5rem, 1.5vw, 1rem)",
-                  }}
-                >
-                  Cancel
-                </button>
-              )}
-
-              <p
-                className="mb-0"
-                style={{
-                  fontSize: "clamp(0.6rem, 1.5vw, 1rem)",
-                  marginTop: "auto",
-                }}
-              >
-                <strong>Total:</strong> {item.quantity}x = ₱
-                {item.finalPrice.toFixed(2)}
-              </p>
-            </div>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
+              <option value="Canceled">Canceled</option>
+            </select>
           </div>
-        ))}
-      </div>
+          <div className="mb-2">
+            <label>Grade:</label>
+            <input
+              type="text"
+              className="form-control"
+              value={gradeLevel}
+              onChange={(e) => setGradeLevel(e.target.value)}
+            />
+          </div>
+          <div className="mb-2">
+            <label>Section:</label>
+            <input
+              type="text"
+              className="form-control"
+              value={section}
+              onChange={(e) => setSection(e.target.value)}
+            />
+          </div>
+          <div className="mb-2">
+            <label>Meeting Place:</label>
+            <input
+              type="text"
+              className="form-control"
+              value={meetingPlace}
+              onChange={(e) => setMeetingPlace(e.target.value)}
+            />
+          </div>
+          <div className="mb-2">
+            <label>Time:</label>
+            <input
+              type="datetime-local"
+              className="form-control"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleUpdate}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

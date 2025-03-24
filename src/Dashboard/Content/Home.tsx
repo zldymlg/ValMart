@@ -35,8 +35,8 @@ const ProductCard = ({ children }: { children: React.ReactNode }) => (
       boxShadow: "0 4px 8px rgba(43, 38, 38, 0.5)",
       borderRadius: "10px",
     }}
-    whileHover={{ scale: 1.02 }} // Hover animation
-    transition={{ type: "spring", stiffness: 100 }} // Spring transition
+    whileHover={{ scale: 1.02 }}
+    transition={{ type: "spring", stiffness: 100 }}
   >
     {children}
   </motion.div>
@@ -58,9 +58,10 @@ function Content() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [show, setShow] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [searchQuery, setSearchQuery] = useState(""); // Add searchQuery state
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleClose = () => setShow(false);
+
   const handleShow = () => setShow(true);
 
   const handleProductClick = (product: Product) => {
@@ -84,7 +85,7 @@ function Content() {
   }, []);
 
   const [order, setOrder] = useState({
-    roomNumber: "",
+    meetingPlace: "",
     time: "",
     quantity: 1,
     price: 0,
@@ -92,6 +93,7 @@ function Content() {
     status: "Pending",
     item: "",
   });
+
   const handleChange = (e: { target: { name: any; value: any } }) => {
     const { name, value } = e.target;
     setOrder((prevOrder) => ({
@@ -103,38 +105,66 @@ function Content() {
   const finalizeOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedProduct) {
-      alert("No product selected.");
+    if (!selectedProduct || !currentUser) {
+      alert("No product selected or user not logged in.");
       return;
     }
 
     const finalPrice = selectedProduct.price * order.quantity;
 
     const orderData = {
-      ...order,
-      finalPrice, // Updated Final Price Calculation
-      buyerId: currentUser?.uid,
-      sellerId: selectedProduct?.userId,
-      item: selectedProduct?.productName,
+      meetingPlace: order.meetingPlace,
+      time: order.time,
+      quantity: order.quantity,
+      price: selectedProduct.price,
+      finalPrice: finalPrice,
+      item: selectedProduct.productName,
       createdAt: new Date(),
+
+      buyerId: currentUser.uid, // Storing these is vital!
+      sellerId: selectedProduct.userId,
+
+      buyerName: currentUser.displayName || "Unknown Buyer",
+      sellerName: selectedProduct.sellerName || "Unknown Seller",
+      status: "Pending",
     };
 
     try {
-      await addDoc(collection(db, "orders"), orderData);
+      // Add order to buyer's collection
+      const buyerOrderRef = await addDoc(
+        collection(db, "users", currentUser.uid, "orders"),
+        orderData
+      );
+      console.log("Buyer order added with ID:", buyerOrderRef.id);
+
+      // Add order to seller's collection (note the `buyerId` for lookup)
+      const sellerOrderRef = await addDoc(
+        collection(db, "users", selectedProduct.userId, "Seller"),
+        orderData
+      );
+
+      console.log("Seller order added with ID:", sellerOrderRef.id);
       alert("Order successfully submitted!");
+      // reset values after the submission in form: the state variable clean.
       setOrder({
-        roomNumber: "",
+        //reset order form values after ordering
+        meetingPlace: "",
         time: "",
         quantity: 1,
         price: 0,
         finalPrice: 0,
-        status: "",
+        status: "Pending",
         item: "",
       });
-      setShow(false); // Close the modal after successful submission
+      handleClose(); //cleanup on closes states for each, important
     } catch (error) {
       console.error("Error adding order:", error);
-      alert("Failed to submit order. Please try again.");
+      console.error("Detailed error adding order:");
+      alert(
+        "Failed to submit order. Please try again. Error details logged to console."
+      );
+    } finally {
+      handleCloseModal(); //ensures cleaning forms on both: (in success case/error state if not submittd/canceled to send) if submit error its close clean. Very valuable state management
     }
   };
 
@@ -166,371 +196,369 @@ function Content() {
   return (
     <React.Fragment>
       <style>{`
-        .swiper-parent {
-          width: clamp(200px, 100%, 100%);
-          height: clamp(200px, 15rem, 300px);
-          background-color: #C11818;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
+          .swiper-parent {
+            width: clamp(200px, 100%, 100%);
+            height: clamp(200px, 15rem, 300px);
+            background-color: #C11818;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
 
-        .top,
-        .bottom {
-          width: 100%;
-          height: 90px;
-          color: #fffefe;
-          font-weight: bold;
-          font-style: Inter;
-          text-align: center;
-        }
-        .top {
-          background-color: #e15555;
-        }
-        .bottom {
-          background-color: #ff9797;
-        }
-        .container-announcement {
-          /* Removed unnecessary styles */
-        }
-        .containerA {
-          height:8.3vh
-          width: clamp(150px, 20vw, 600px);
-          max-height: 93px;
-          min-height: 50px;
-        }
-        .icon-announce {
-          font-size: clamp(32px, 6vw, 54px);
-          min-width: 22px;
-        }
-        .category-button {
-          padding: 8px 12px;
-          font-size: clamp(9px, 1.5vw, 13px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          width: clamp(100px, 10vw, 140px);
-          min-width: 100px;
-          max-width: 160px;
-          border: 1px solid #ccc;
-          border-radius: 6px;
-          background-color: #f8f9fa;
-          transition: background-color 0.2s ease-in-out;
-          margin: 4px;
-        }
-        .category-button.selected {
-          background-color: #c11818;
-          color: white;
-        }
-        .category-button.selected svg {
-          color: white;
-        }
-        .product-card {
-          width: 18rem;
-          background: #fff;
-          border-radius: 10px;
-          overflow: hidden;
-          box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-          margin: 1rem;
-          cursor: pointer;
-        }
-        .product-img {
-          width: 100%;
-          height: 180px;
-          object-fit: cover;
-        }
-        .product-details {
-          padding: 10px;
-        }
-        .seller-info {
-          margin-top: 8px;
-          font-size: 0.9rem;
-          color: gray;
-        }
-        .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  max-width: 400px;
-  text-align: center;
-  position: relative;
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-.product-img {
-  width: 100%;
-  max-height: 250px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-.product-title {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.product-price {
-  font-size: 22px;
-  font-weight: bold;
-  color: #ff5722;
-  margin-bottom: 10px;
-}
-
-.btn-group {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.btn-buy {
-  background-color: #ff5722;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  flex: 1;
-}
-
-.btn-close {
-  background-color: #ccc;
-  color: black;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  flex: 1;
-}
-
-.close-btn {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  font-size: 18px;
-  cursor: pointer;
-  background: none;
-  border: none;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
+          .top,
+          .bottom {
+            width: 100%;
+            height: 90px;
+            color: #fffefe;
+            font-weight: bold;
+            font-style: Inter;
+            text-align: center;
+          }
+          .top {
+            background-color: #e15555;
+          }
+          .bottom {
+            background-color: #ff9797;
+          }
+          .container-announcement {
+            /* Removed unnecessary styles */
+          }
+          .containerA {
+            height:8.3vh
+            width: clamp(150px, 20vw, 600px);
+            max-height: 93px;
+            min-height: 50px;
+          }
+          .icon-announce {
+            font-size: clamp(32px, 6vw, 54px);
+            min-width: 22px;
+          }
+          .category-button {
+            padding: 8px 12px;
+            font-size: clamp(9px, 1.5vw, 13px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            width: clamp(100px, 10vw, 140px);
+            min-width: 100px;
+            max-width: 160px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            transition: background-color 0.2s ease-in-out;
+            margin: 4px;
+          }
+          .category-button.selected {
+            background-color: #c11818;
+            color: white;
+          }
+          .category-button.selected svg {
+            color: white;
+          }
+          .product-card {
+            width: 18rem;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 1rem;
+            cursor: pointer;
+          }
+          .product-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+          }
+          .product-details {
+            padding: 10px;
+          }
+          .seller-info {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: gray;
+          }
+          .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
   }
 
-}
+  .modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    text-align: center;
+    position: relative;
+    animation: fadeIn 0.3s ease-in-out;
+  }
 
-@media (max-width: 766px) {
-  .swiper-parent {
-          height: 25vh
-        }
-  .containerA{
-        height:10vh
-  }        
-  .product-card{
-        width:10rem;
-        height:17rem
-  }      
   .product-img {
-        width: 100%;
-        height: 130px;
+    width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
   }
+
   .product-title {
-      font-size: 15px;
-      }      
-  .product-price{
-        font-size:13px;
-  }.seller-info{
-        font-size:11px;
-  }   
-}
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
 
-.order-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-  @media (max-width: 320px) {
-  .swiper-parent {
-          height: 5vh
+  .product-price {
+    font-size: 22px;
+    font-weight: bold;
+    color: #ff5722;
+    margin-bottom: 10px;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+  }
+
+  .btn-buy {
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .btn-close {
+    background-color: #ccc;
+    color: black;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 18px;
+    cursor: pointer;
+    background: none;
+    border: none;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+  }
+
+  @media (max-width: 766px) {
+    .swiper-parent {
+            height: 25vh
+          }
+    .containerA{
+          height:10vh
+    }
+    .product-card{
+          width:10rem;
+          height:17rem
+    }
+    .product-img {
+          width: 100%;
+          height: 130px;
+    }
+    .product-title {
+        font-size: 15px;
         }
-  .containerA{
-        height:10vh
-  }        
-  .product-card{
-        width:10rem;
-        height:17rem
-  }      
-  .product-img {
-        width: 100%;
-        height: 130px;
+    .product-price{
+          font-size:13px;
+    }.seller-info{
+          font-size:11px;
+    }
   }
-  .product-title {
-      font-size: 15px;
-      }      
-  .product-price{
-        font-size:13px;
-  }.seller-info{
-        font-size:11px;
-  }   
-}
 
-.order-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-
-
-.order-btn {
-  background: linear-gradient(135deg, #c11818, #ff4b4b);
-  color: white;
-  font-size: 18px;
-  padding: 12px 25px;
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0px 6px 20px rgba(193, 24, 24, 0.5);
-  transition: all 0.3s ease;
-}
-
-.order-btn:hover {
-  background: linear-gradient(135deg, #a31414, #ff2e2e);
-  transform: translateY(-3px);
-  box-shadow: 0px 10px 25px rgba(193, 24, 24, 0.6);
-}
-
-
-.custom-modal .modal-header {
-  background: rgba(193, 24, 24, 0.9);
-  color: white;
-  text-align: center;
-  padding: 20px;
-  border-radius: 12px 12px 0 0;
-}
-
-.modal-title {
-  font-size: 26px;
-  font-weight: bold;
-}
-
-.modal-body {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  padding: 20px;
-  border-radius: 12px;
-}
-
-
-.form-group {
-  position: relative;
-  margin-bottom: 25px;
-   width: 100%;
-}
-
-.floating-input {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.6);
-  box-shadow: inset 0px 3px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.floating-input:focus {
-  outline: none;
-  box-shadow: 0px 0px 10px rgba(193, 24, 24, 0.5);
-}
-
-.floating-label {
-  position: absolute;
-  top: 50%;
-  left: 12px;
-  transform: translateY(-50%);
-  font-size: 16px;
-  color: #555;
-  transition: all 0.3s ease;
-  pointer-events: none;
-}
-
-.floating-input:focus + .floating-label,
-.floating-input:not(:placeholder-shown) + .floating-label {
-  top: 8px;
-  font-size: 12px;
-  color: #c11818;
-}
-
-.price-group {
-  display: flex;
-  justify-content: space-between;
-  font-size: 18px;
-  font-weight: bold;
-  color: #c11818;
-}
-
-.price-group span {
-  font-size: 20px;
-  color: #333;
-}
-
-/* 📦 Modal Footer */
-.modal-footer {
-  display: flex;
-  justify-content: space-between;
-  padding: 15px;
-  border-top: 1px solid #eee;
-}
-
-/* 🌟 Animation */
-@keyframes popUp {
-  0% {
-    transform: scale(1);
-    opacity: 0;
+  .order-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
   }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.custom-modal {
-  animation: popUp 0.3s ease-in-out;
-}
-
-  
-@media (max-width: 425px) {
-  .swiper-parent {
-          height: 20vh
+    @media (max-width: 320px) {
+    .swiper-parent {
+            height: 5vh
+          }
+    .containerA{
+          height:10vh
+    }
+    .product-card{
+          width:10rem;
+          height:17rem
+    }
+    .product-img {
+          width: 100%;
+          height: 130px;
+    }
+    .product-title {
+        font-size: 15px;
         }
-  .product-card{
-        width:10rem;
-        height:13rem
-  }      
-}        
+    .product-price{
+          font-size:13px;
+    }.seller-info{
+          font-size:11px;
+    }
+  }
 
-      `}</style>
+  .order-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+
+
+  .order-btn {
+    background: linear-gradient(135deg, #c11818, #ff4b4b);
+    color: white;
+    font-size: 18px;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0px 6px 20px rgba(193, 24, 24, 0.5);
+    transition: all 0.3s ease;
+  }
+
+  .order-btn:hover {
+    background: linear-gradient(135deg, #a31414, #ff2e2e);
+    transform: translateY(-3px);
+    box-shadow: 0px 10px 25px rgba(193, 24, 24, 0.6);
+  }
+
+
+  .custom-modal .modal-header {
+    background: rgba(193, 24, 24, 0.9);
+    color: white;
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .modal-title {
+    font-size: 26px;
+    font-weight: bold;
+  }
+
+  .modal-body {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+
+  .form-group {
+    position: relative;
+    margin-bottom: 25px;
+    width: 100%;
+  }
+
+  .floating-input {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0px 3px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .floating-input:focus {
+    outline: none;
+    box-shadow: 0px 0px 10px rgba(193, 24, 24, 0.5);
+  }
+
+  .floating-label {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #555;
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+
+  .floating-input:focus + .floating-label,
+  .floating-input:not(:placeholder-shown) + .floating-label {
+    top: 8px;
+    font-size: 12px;
+    color: #c11818;
+  }
+
+  .price-group {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: bold;
+    color: #c11818;
+  }
+
+  .price-group span {
+    font-size: 20px;
+    color: #333;
+  }
+
+  /* 📦 Modal Footer */
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    border-top: 1px solid #eee;
+  }
+
+  /* 🌟 Animation */
+  @keyframes popUp {
+    0% {
+      transform: scale(1);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .custom-modal {
+    animation: popUp 0.3s ease-in-out;
+  }
+  @media (max-width: 425px) {
+    .swiper-parent {
+            height: 20vh
+          }
+    .product-card{
+          width:10rem;
+          height:13rem
+    }
+  }
+
+        `}</style>
       <div className="align-items-center justify-content-center swiper-parent py-4 h-50 ">
         <AnimatePresence mode="wait">
           <div
@@ -542,7 +570,7 @@ function Content() {
             }}
           >
             <Swiper
-              autoplay={{ delay: 3, disableOnInteraction: false }}
+              autoplay={{ delay: 0.3, disableOnInteraction: false }}
               loop={true}
               className="w-100"
             >
@@ -553,7 +581,7 @@ function Content() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 1, ease: "easeInOut" }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
                 />
               </SwiperSlide>
               <SwiperSlide>
@@ -563,7 +591,7 @@ function Content() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 1, ease: "easeInOut" }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
                 />
               </SwiperSlide>
               <SwiperSlide>
@@ -573,7 +601,7 @@ function Content() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 1, ease: "easeInOut" }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
                 />
               </SwiperSlide>
             </Swiper>
@@ -594,7 +622,6 @@ function Content() {
           </div>
         </div>
       </div>
-
       <div className="container mt-3">
         <div className="row row-cols-lg-6 row-cols-sm-3 row-cols-3 g-2 text-start">
           {[
@@ -618,7 +645,6 @@ function Content() {
           ))}
         </div>
       </div>
-
       <hr></hr>
       <div className="container mt-3">
         <input
@@ -668,7 +694,6 @@ function Content() {
           )}
         </div>
       </div>
-
       {showModal && (
         <motion.div
           className="modal-overlay"
@@ -827,18 +852,18 @@ function Content() {
                   </Modal.Header>
                   <form onSubmit={finalizeOrder}>
                     <Modal.Body className="modal-body">
-                      <div className="form-group">
+                      <div className="form-group  pt-3">
                         <input
                           type="text"
                           className="form-control floating-input"
-                          name="roomNumber"
-                          value={order.roomNumber}
+                          name="meetingPlace"
+                          value={order.meetingPlace}
                           onChange={handleChange}
                           required
                         />
-                        <label className="floating-label">Room Number</label>
+                        <label className="floating-label">Meeting Place</label>
                       </div>
-                      <div className="form-group">
+                      <div className="form-group  pt-3">
                         <input
                           type="datetime-local"
                           className="form-control floating-input"
@@ -854,7 +879,7 @@ function Content() {
                         />
                         <label className="floating-label">Time</label>
                       </div>
-                      <div className="form-group">
+                      <div className="form-group  pt-3">
                         <input
                           type="number"
                           className="form-control floating-input"
@@ -880,11 +905,7 @@ function Content() {
                       </div>
                     </Modal.Body>
                     <Modal.Footer>
-                      <Button
-                        type="submit"
-                        className="order-btn"
-                        onClick={() => setShow(true)}
-                      >
+                      <Button type="submit" className="order-btn">
                         ✅ Confirm Order
                       </Button>
                       <Button className="order-btn" onClick={handleClose}>
