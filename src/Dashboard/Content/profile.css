@@ -1,16 +1,5 @@
-:root {
-    --primary-color: #4f46e5;
-    --secondary-color: #eef2ff;
-    --text-color: #1e293b;
-    --bg-color: #ffffff;
-    --border-radius: 20px;
-    --transition: all 0.3s ease-in-out;
-    --shadow: 0px 10px 30px rgba(0, 0, 0, 0.15);
-}
-
 body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, #eef2ff 30%, #dbeafe 100%);
     color: var(--text-color);
     margin: 0;
     padding: 0;
@@ -150,4 +139,84 @@ body {
     font-size: 28px;
     font-weight: bold;
     display: block;
+}
+
+/* 🌆 Modal Backdrop - Subtle Gradient */
+.modal-backdrop-custom {
+    background: rgba(0, 0, 0, 0.6);
+    /* Darker, smooth background */
+    backdrop-filter: blur(5px);
+    /* Adds a soft blur effect */
+}
+
+/* 🎨 Modal Box - Modern Look */
+.modal-content {
+    background: white;
+    border: none;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.3);
+    /* Soft shadow */
+}
+
+/* 🏛 Modal Header - Elegant with Accent */
+.modal-header-custom {
+    background: linear-gradient(135deg, #C11818, #A01515);
+    color: white;
+    font-weight: bold;
+    padding: 14px;
+    text-align: center;
+    border-radius: 12px 12px 0 0;
+    font-size: 18px;
+}
+
+/* 🖊 Input Fields - Clean & Modern */
+.form-control {
+    border: 2px solid #C11818;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 16px;
+    transition: all 0.3s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #A01515;
+    box-shadow: 0 0 8px rgba(193, 24, 24, 0.4);
+}
+
+.btn-save {
+    background: linear-gradient(135deg, #C11818, #A01515);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 10px;
+    font-size: 16px;
+    transition: 0.3s ease-in-out;
+    margin-right: 10px;
+
+}
+
+
+.btn-save:hover {
+    background: #C11818;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0px 3px 10px rgba(193, 24, 24, 0.3);
+
+}
+
+.btn-cancel {
+    background: white;
+    color: #C11818;
+    border: 2px solid #C11818;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 16px;
+    transition: 0.3s ease-in-out;
+}
+
+.btn-cancel:hover {
+    background: #C11818;
+    color: white;
+    transform: scale(1.05);
 }

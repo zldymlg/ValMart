@@ -149,7 +149,6 @@ const HeaderContent: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* MAIN CONTENT WITH FADE TRANSITION */}
       <motion.div
         key={activeTab}
         className={`main-content ${sidebarOpen ? "shifted" : ""}`}

@@ -4,7 +4,14 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { FaStore, FaBook, FaFlask, FaTools, FaEllipsisH } from "react-icons/fa";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { AnimatePresence, motion } from "framer-motion";
-import { collection, getDocs, doc, getDoc, addDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
+} from "firebase/firestore";
 import Imageswiper from "./Asset/Swiper1.png";
 import Imageswiper1 from "./Asset/Swiper2.png";
 import Imageswiper2 from "./Asset/Swiper3.png";
@@ -16,6 +23,7 @@ interface Product {
   id: string;
   description: string;
   category: string;
+  stocks: number;
   contact: string;
   createdAt: string;
   gradeSection: string;
@@ -110,6 +118,11 @@ function Content() {
       return;
     }
 
+    if (order.quantity > selectedProduct.stocks) {
+      alert("Not enough stock available.");
+      return;
+    }
+
     const finalPrice = selectedProduct.price * order.quantity;
 
     const orderData = {
@@ -127,6 +140,7 @@ function Content() {
       buyerName: currentUser.displayName || "Unknown Buyer",
       sellerName: selectedProduct.sellerName || "Unknown Seller",
       status: "Pending",
+      img: selectedProduct.imageUrl,
     };
 
     try {
@@ -144,10 +158,9 @@ function Content() {
       );
 
       console.log("Seller order added with ID:", sellerOrderRef.id);
+
       alert("Order successfully submitted!");
-      // reset values after the submission in form: the state variable clean.
       setOrder({
-        //reset order form values after ordering
         meetingPlace: "",
         time: "",
         quantity: 1,
@@ -192,6 +205,21 @@ function Content() {
 
     fetchProducts();
   }, []);
+
+  const formatDateForInput = (dateString: string) => {
+    const date = new Date(dateString);
+    return (
+      date.getFullYear() +
+      "-" +
+      String(date.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(date.getDate()).padStart(2, "0") +
+      "T" +
+      String(date.getHours()).padStart(2, "0") +
+      ":" +
+      String(date.getMinutes()).padStart(2, "0")
+    );
+  };
 
   return (
     <React.Fragment>
@@ -781,7 +809,7 @@ function Content() {
                       padding: "10px",
                       whiteSpace: "pre-line",
                       wordWrap: "break-word",
-                      overflowWrap: "break-word", // Additional safeguard for word wrapping
+                      overflowWrap: "break-word",
                     }}
                   >
                     {selectedProduct.description ||
@@ -803,6 +831,12 @@ function Content() {
                       </span>
                     </p>
                     <p>
+                      <p>
+                        <strong>Stocks:</strong>{" "}
+                        <span style={{ color: "gray" }}>
+                          {selectedProduct.stocks}
+                        </span>
+                      </p>
                       <strong>Contact:</strong>{" "}
                       <a
                         href={selectedProduct.contact}
@@ -868,10 +902,9 @@ function Content() {
                           type="datetime-local"
                           className="form-control floating-input"
                           value={
-                            order.time
-                              ? new Date(order.time).toISOString().slice(0, 16)
-                              : ""
+                            order.time ? formatDateForInput(order.time) : ""
                           }
+                          style={{ appearance: "none" }}
                           onChange={(e) =>
                             setOrder({ ...order, time: e.target.value })
                           }
@@ -887,6 +920,7 @@ function Content() {
                           value={order.quantity}
                           onChange={handleChange}
                           min="1"
+                          max={selectedProduct.stocks}
                           required
                         />
                         <label className="floating-label">Quantity</label>

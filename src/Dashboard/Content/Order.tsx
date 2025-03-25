@@ -8,7 +8,8 @@ import {
   doc,
   Timestamp,
   getDoc,
-  deleteDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./Order.css";
@@ -18,8 +19,9 @@ import { Modal, Button } from "react-bootstrap";
 interface Order {
   id: string;
   meetingPlace: string;
-  time: string;
+  time: string | Timestamp;
   quantity: number;
+  stocks: number;
   finalPrice: number;
   buyerId: string;
   sellerId: string;
@@ -63,7 +65,6 @@ export default function OrderManagement() {
     try {
       const ordersRef = collection(db, "users", currentUser!.uid, "Seller");
       const ordersSnapshot = await getDocs(ordersRef);
-
       const orderList: Order[] = [];
 
       for (const docSnap of ordersSnapshot.docs) {
@@ -80,7 +81,6 @@ export default function OrderManagement() {
           try {
             const buyerRef = doc(db, "users", buyerId);
             const buyerSnap = await getDoc(buyerRef);
-
             if (buyerSnap.exists()) {
               const buyerData = buyerSnap.data();
               buyerDetails = {
@@ -100,7 +100,6 @@ export default function OrderManagement() {
           ...buyerDetails,
         });
       }
-
       setOrders(orderList);
     } catch (error) {
       console.error("Error fetching seller orders:", error);
@@ -121,7 +120,11 @@ export default function OrderManagement() {
     setGradeLevel(order.gradeLevel || "");
     setSection(order.section || "");
     setMeetingPlace(order.meetingPlace || "");
-    setTime(order.time ? moment(order.time).format("YYYY-MM-DDTHH:mm") : "");
+    setTime(
+      order.time instanceof Timestamp
+        ? moment(order.time.toDate()).format("YYYY-MM-DDTHH:mm")
+        : order.time || ""
+    );
     handleShow();
   };
 
@@ -129,7 +132,8 @@ export default function OrderManagement() {
     if (!selectedOrder || !currentUser) return;
 
     try {
-      const orderRef = doc(
+      // Reference the seller's order in "Seller"
+      const sellerOrderRef = doc(
         db,
         "users",
         currentUser.uid,
@@ -137,35 +141,105 @@ export default function OrderManagement() {
         selectedOrder.id
       );
 
-      if (status === "Canceled") {
-        await deleteDoc(orderRef);
-        setOrders((prevOrders) =>
-          prevOrders.filter((o) => o.id !== selectedOrder.id)
-        );
-        handleClose();
-        alert("Order canceled successfully."); //User feedback
-      } else {
-        await updateDoc(orderRef, {
-          status,
-          gradeLevel,
-          section,
-          meetingPlace,
-          time,
-        });
+      // Find the corresponding order in the buyer's "orders" collection
+      const buyerOrdersRef = collection(
+        db,
+        "users",
+        selectedOrder.buyerId,
+        "orders"
+      );
+      const buyerOrdersSnapshot = await getDocs(buyerOrdersRef);
 
-        setOrders((prevOrders) =>
-          prevOrders.map((o) =>
-            o.id === selectedOrder.id
-              ? { ...o, status, gradeLevel, section, meetingPlace, time }
-              : o
-          )
-        );
-        handleClose();
-        alert("Order updated successfully."); //User feedback
+      let buyerOrderId = "";
+      buyerOrdersSnapshot.forEach((docSnap) => {
+        const orderData = docSnap.data();
+        if (
+          orderData.item === selectedOrder.item &&
+          orderData.finalPrice === selectedOrder.finalPrice &&
+          orderData.createdAt?.isEqual(selectedOrder.createdAt)
+        ) {
+          buyerOrderId = docSnap.id;
+        }
+      });
+
+      if (!buyerOrderId) {
+        console.error("Buyer order ID not found.");
+        alert("Error: Matching order in Buyer's list not found.");
+        return;
       }
+
+      // Reference the buyer's order
+      const buyerOrderRef = doc(
+        db,
+        "users",
+        selectedOrder.buyerId,
+        "orders",
+        buyerOrderId
+      );
+
+      // Ensure correct timestamp format
+      const updatedTime = time
+        ? Timestamp.fromDate(new Date(time))
+        : selectedOrder.time instanceof Timestamp
+        ? selectedOrder.time
+        : Timestamp.now();
+
+      const updatedOrderData = {
+        status,
+        isCancelled: status === "Canceled",
+        gradeLevel,
+        section,
+        meetingPlace,
+        time: updatedTime,
+      };
+
+      // Update both seller and buyer orders
+      await updateDoc(sellerOrderRef, updatedOrderData);
+      await updateDoc(buyerOrderRef, updatedOrderData);
+
+      console.log("Orders updated successfully.");
+
+      const itemsRef = collection(db, "items");
+      const q = query(
+        itemsRef,
+        where("productName", "==", selectedOrder.item),
+        where("userId", "==", selectedOrder.sellerId)
+      );
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        console.error("Item not found in Firestore.");
+        alert("Error: Item not found in the inventory.");
+        return;
+      }
+
+      const productDoc = querySnapshot.docs[0];
+      const productRef = doc(db, "items", productDoc.id);
+      const productData = productDoc.data();
+
+      const currentStock = Number(productData.stocks);
+
+      if (status === "Completed") {
+        // Deduct stock when order is completed
+        await updateDoc(productRef, {
+          stocks: Number(currentStock) - Number(selectedOrder.quantity),
+        });
+        console.log("Product stock updated (deducted) successfully.");
+      } else if (status === "Canceled" || status === "Pending") {
+        // Restore stock when order is canceled
+        await updateDoc(productRef, {
+          //stocks: Number(currentStock) + Number(selectedOrder.quantity),
+        });
+        console.log("Product stock restored due to order cancellation.");
+      }
+
+      fetchSellerOrders();
+
+      handleClose();
+      alert("Order updated successfully!");
     } catch (error) {
-      console.error("Error updating order:", error);
-      alert("Error updating order. Please try again later."); //User feedback
+      console.error("Error updating orders:", error);
+      alert("Error updating orders. Please check the console for details.");
     }
   };
 
@@ -189,37 +263,52 @@ export default function OrderManagement() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order) => (
-              <tr key={order.id}>
-                <td>{order.item}</td>
-                <td>{order.buyerName}</td>
-                <td>₱{order.finalPrice.toFixed(2)}</td>
-                <td>{order.quantity}</td>
-                <td>{order.status}</td>
-                <td>{order.gradeLevel || "N/A"}</td>
-                <td>{order.section || "N/A"}</td>
-                <td>{order.meetingPlace || "N/A"}</td>
-                <td>
-                  {order.time
-                    ? moment(order.time).format("MMMM Do YYYY, hh:mm A")
-                    : "N/A"}
-                </td>
-                <td>
-                  <Button
-                    variant="warning"
-                    size="sm"
-                    onClick={() => handleViewDetails(order)}
-                  >
-                    Update
-                  </Button>
-                </td>
-              </tr>
-            ))}
+            {orders
+              .sort((a, b) => {
+                const statusOrder: Record<string, number> = {
+                  Pending: 1,
+                  Completed: 2,
+                  Canceled: 3,
+                };
+                return (
+                  (statusOrder[a.status] ?? 4) - (statusOrder[b.status] ?? 4)
+                );
+              })
+              .map((order) => (
+                <tr key={order.id}>
+                  <td>{order.item}</td>
+                  <td>{order.buyerName}</td>
+                  <td>₱{order.finalPrice.toFixed(2)}</td>
+                  <td>{order.quantity}</td>
+                  <td>{order.status}</td>
+                  <td>{order.gradeLevel || "N/A"}</td>
+                  <td>{order.section || "N/A"}</td>
+                  <td>{order.meetingPlace || "N/A"}</td>
+                  <td>
+                    {order.time
+                      ? moment(
+                          order.time instanceof Timestamp
+                            ? order.time.toDate()
+                            : order.time
+                        ).format("MMMM Do YYYY, hh:mm A")
+                      : "N/A"}
+                  </td>
+                  <td>
+                    <Button
+                      variant="warning"
+                      size="sm"
+                      onClick={() => handleViewDetails(order)}
+                    >
+                      Update
+                    </Button>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
 
-      <Modal show={show} onHide={handleClose}>
+      <Modal show={show} onHide={handleClose} className="custom-modal">
         <Modal.Header closeButton>
           <Modal.Title>Update Order</Modal.Title>
         </Modal.Header>

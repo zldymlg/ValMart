@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
+import defaultProfile from "./Asset/DefaultPhoto.jpg";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -22,6 +23,7 @@ import {
   FaSchool,
   FaPen,
 } from "react-icons/fa6";
+import "./profile.css";
 interface User {
   fullName?: string;
   contact?: string;
@@ -31,9 +33,7 @@ interface User {
 
 export default function Profile() {
   const [_userData, setUserData] = useState<User>({});
-  const [imageUrl, setImageUrl] = useState(
-    "https://bxemmrkbsnygfipesymp.supabase.co/storage/v1/object/public/Valmart/profiles/DefaultPhoto.jpg"
-  );
+  const [imageUrl, setImageUrl] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState("");
   const [contact, setContact] = useState("");
@@ -44,6 +44,7 @@ export default function Profile() {
   const [purchasesCount, setPurchasesCount] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [hovered, setHovered] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll(
@@ -99,17 +100,22 @@ export default function Profile() {
 
   useEffect(() => {
     const fetchStats = async () => {
+      if (!currentUserId) return;
       try {
-        const querySnapshot = await getDocs(collection(db, "orders"));
-        const fetchedOrders = querySnapshot.docs.map((doc) => doc.data());
+        const buyerquerySnapshot = await getDocs(
+          collection(db, `users/${currentUserId}/orders`)
+        );
+        const sellerquerySnapshot = await getDocs(
+          collection(db, `users/${currentUserId}/Seller`)
+        );
+        const fetchedOrders = buyerquerySnapshot.docs.map((doc) => doc.data());
+        const fetchedSold = sellerquerySnapshot.docs.map((doc) => doc.data());
 
-        // Filter for items sold (Completed status)
-        const soldItems = fetchedOrders.filter(
+        const soldItems = fetchedSold.filter(
           (order) =>
             order.sellerId === currentUserId && order.status === "Completed"
         );
 
-        // Filter for purchases
         const purchases = fetchedOrders.filter(
           (order) =>
             order.buyerId === currentUserId && order.status === "Completed"
@@ -123,7 +129,7 @@ export default function Profile() {
     };
 
     fetchStats();
-  }, []);
+  }, [currentUserId]);
 
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -194,14 +200,16 @@ export default function Profile() {
       >
         <label htmlFor="profilePic" className="d-block">
           <img
-            src={imageUrl || "placeholder.jpg"}
+            src={imageUrl}
             alt="Profile"
+            onError={(e) => (e.currentTarget.src = defaultProfile)}
             className="rounded-circle p-3"
             data-bs-toggle="tooltip"
             data-bs-placement="top"
             title="Upload Profile"
             style={{
               cursor: "pointer",
+
               width: "clamp(120px, 18vw, 180px)",
               height: "clamp(120px, 18vw, 180px)",
               objectFit: "cover",
@@ -242,18 +250,23 @@ export default function Profile() {
                 className="pb-1"
                 style={{
                   color: "red",
-                  fontSize: "clamp (20px, 27px, 30px)",
+                  fontSize: "clamp(20px, 27px, 30px)",
+                  transition: "transform 0.2s ease-in-out",
+                  transform: isHovered ? "scale(0.9)" : "scale(0.6)",
                 }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                title="Edit Profile"
               />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="d-flex flex-md-row flex-column gap-5 mt-2 p-2 justify-content-center">
-        <div className="d-flex flex-md-row flex-column ">
-          <div className="d-flex flex-column text-lg-start text-center me-lg-5">
-            <p className="mt-3 mt-md-5 mb-3">
+      <div className="d-flex flex-md-row flex-column gap-4 mt-2 p-2 justify-content-between">
+        <div className="d-flex flex-md-row flex-column">
+          <div className="d-flex flex-column justify-content-between text-lg-start text-center me-lg-5">
+            <p className="mt-3 mt-md-5 mb-3 pe-5">
               {" "}
               <FaIdBadge
                 className="me-2 fs-1 fs-md-3"
@@ -261,10 +274,7 @@ export default function Profile() {
                   color: "#C11818",
                 }}
               />
-              Full Name:{" "}
-              <span style={{ color: "gray" }}>
-                {fullName || "Please input your Full name"}
-              </span>
+              Full Name: <span style={{ color: "gray" }}>{fullName}</span>
             </p>
             <p className="mt-3 mt-md-5 mb-3">
               {""}
@@ -275,9 +285,7 @@ export default function Profile() {
                 }}
               />
               Contact:{""}
-              <span style={{ color: "gray" }}>
-                {contact || "Placeholder for Contact"}
-              </span>
+              <span style={{ color: "gray" }}>{contact}</span>
             </p>
             <p className="mt-3 mt-md-5 mb-3">
               {""}
@@ -287,10 +295,7 @@ export default function Profile() {
                   color: "#C11818",
                 }}
               />
-              Social Link:{" "}
-              <span style={{ color: "gray" }}>
-                {social || "Placeholder for Social Link"}
-              </span>
+              Social Link: <span style={{ color: "gray" }}>{social}</span>
             </p>
           </div>
           <div className="d-flex flex-column text-lg-start text-center">
@@ -303,7 +308,7 @@ export default function Profile() {
                 }}
               />
               <span style={{ color: "gray" }}>
-                Username:{""} {username || "Placeholder for Username"}
+                Username:{""} {username}
               </span>
             </p>
             <p className="mt-3 mt-md-5 mb-3">
@@ -314,7 +319,7 @@ export default function Profile() {
                   color: "#C11818",
                 }}
               />
-              Section:{""} {section || "Placeholder for Section"}
+              Section:{""} {section}
             </p>
           </div>
         </div>
@@ -334,55 +339,63 @@ export default function Profile() {
         </div>
       </div>
       {isEditing && (
-        <div className="modal show d-block bg-dark bg-opacity-50 position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+        <div className="modal show d-block modal-backdrop-custom position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
           <div className="modal-dialog">
-            <div className="modal-content p-4">
-              <h4 className="mb-3">Edit Profile</h4>
-              <input
-                type="text"
-                className="form-control my-2"
-                placeholder="Full Name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
-              <input
-                type="text"
-                className="form-control my-2"
-                placeholder="Contact"
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-              />
-              <input
-                type="text"
-                className="form-control my-2"
-                placeholder="Social Link"
-                value={social}
-                onChange={(e) => setSocial(e.target.value)}
-              />
-              <input
-                type="text"
-                className="form-control my-2"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-              <input
-                type="text"
-                className="form-control my-2"
-                placeholder="Section"
-                value={section}
-                onChange={(e) => setSection(e.target.value)}
-              />
-              <div className="d-flex justify-content-between mt-3">
-                <button className="btn btn-success" onClick={handleSave}>
-                  Save Changes
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancel
-                </button>
+            <div className="modal-content">
+              {/* Header */}
+              <div className="modal-header-custom">
+                <h4 className="mb-0">Edit Profile</h4>
+              </div>
+
+              <div className="p-4">
+                {/* Input Fields */}
+                <input
+                  type="text"
+                  className="form-control my-2"
+                  placeholder="Full Name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="form-control my-2"
+                  placeholder="Contact"
+                  value={contact}
+                  onChange={(e) => setContact(e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="form-control my-2"
+                  placeholder="Social Link"
+                  value={social}
+                  onChange={(e) => setSocial(e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="form-control my-2"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="form-control my-2"
+                  placeholder="Section"
+                  value={section}
+                  onChange={(e) => setSection(e.target.value)}
+                />
+
+                <div className="d-flex justify-content-start mt-4">
+                  <button className="btn btn-save" onClick={handleSave}>
+                    Save Changes
+                  </button>
+                  <button
+                    className="btn btn-cancel"
+                    onClick={() => setIsEditing(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
           </div>

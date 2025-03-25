@@ -2,73 +2,101 @@
     font-size: clamp(10px, 16px, 18px);
 }
 
-.modal-header {
-    background: #d32f2f;
+.custom-modal .modal-backdrop {
+    backdrop-filter: blur(10px);
+    /* Adds blur */
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    /* Dark overlay */
+}
+
+.custom-modal .modal-content {
+    background: #fff;
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* === Modal Header with Red Theme === */
+.custom-modal .modal-header {
+    background: linear-gradient(135deg, #C11818, #A01515);
     color: white;
-    border-bottom: none;
-    padding: 15px;
-    text-align: center;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    padding: 16px;
 }
 
-.modal-title {
+.custom-modal .modal-title {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+/* Close Button - White for Contrast */
+.custom-modal .btn-close {
+    filter: invert(1);
+    /* Makes it white */
+}
+
+/* === Label Styling === */
+.custom-modal .form-label {
     font-weight: 600;
-    font-size: 1.4rem;
+    color: #333;
 }
 
-.modal-body {
-    background-color: #fff;
-    padding: 20px;
-}
-
-.modal-body label {
-    font-weight: 500;
-    color: #d32f2f;
-    font-size: 1rem;
-    margin-bottom: 5px;
-}
-
-.modal-body .form-control {
-    border: 1px solid #ccc;
-    border-radius: 6px;
+/* === Input Fields and Select === */
+.custom-modal .form-control,
+.custom-modal .form-select {
+    border: 2px solid #C11818;
+    border-radius: 10px;
     padding: 10px;
-    transition: border-color 0.2s ease-in-out;
+    transition: 0.3s;
 }
 
-.modal-body .form-control:focus {
-    border-color: #d32f2f;
-    box-shadow: none;
+.custom-modal .form-control:focus,
+.custom-modal .form-select:focus {
+    border-color: #A01515;
+    box-shadow: 0px 0px 10px rgba(193, 24, 24, 0.5);
 }
 
-.modal-footer {
-    background: #f8f8f8;
-    border-top: none;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-}
-
-.modal-footer .btn-primary {
-    background: #d32f2f;
+/* === Button Styling === */
+.custom-modal .modal-footer .btn-secondary {
+    background: #6c757d;
     border: none;
-    font-weight: 500;
-    padding: 8px 16px;
-    border-radius: 6px;
-    transition: background 0.2s ease-in-out;
+    padding: 10px 16px;
+    border-radius: 10px;
+    transition: 0.3s;
 }
 
-.modal-footer .btn-primary:hover {
-    background: #b71c1c;
+.custom-modal .modal-footer .btn-secondary:hover {
+    background: #5a6268;
 }
 
-.modal-footer .btn-secondary {
-    background: #999;
+/* Save Button - Red Gradient */
+.custom-modal .modal-footer .btn-primary {
+    background: linear-gradient(135deg, #C11818, #A01515);
     border: none;
-    font-weight: 500;
-    padding: 8px 16px;
-    border-radius: 6px;
-    transition: background 0.2s ease-in-out;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-weight: bold;
+    transition: 0.3s;
 }
 
-.modal-footer .btn-secondary:hover {
-    background: #777;
+.custom-modal .modal-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #A01515, #800F0F);
+}
+
+/* === Smooth Animation === */
+.custom-modal .modal-content {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
