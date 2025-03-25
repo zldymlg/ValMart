@@ -4,14 +4,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { FaStore, FaBook, FaFlask, FaTools, FaEllipsisH } from "react-icons/fa";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  collection,
-  getDocs,
-  doc,
-  getDoc,
-  addDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, addDoc } from "firebase/firestore";
 import Imageswiper from "./Asset/Swiper1.png";
 import Imageswiper1 from "./Asset/Swiper2.png";
 import Imageswiper2 from "./Asset/Swiper3.png";
